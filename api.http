@@ -1,0 +1,28 @@
+# Collection of endpoints for handling tokens in a React server application.
+
+####
+# CREATE A NEW USER
+POST http://localhost:8000/api/auth/register
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "JimmyVazz",
+  "password": "Password123//"
+}
+####
+# LOGINUSER
+POST http://localhost:8000/api/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "email": "JimmyVazz",
+  "password": "Password123//"
+}
+####
+# USER
+GET http://localhost:8000/api/user
+Accept: application/json
+Authorization: Bearer token
+####
