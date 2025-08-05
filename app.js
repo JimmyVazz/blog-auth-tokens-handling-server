@@ -16,6 +16,15 @@ const REFRESH_SECRET = process.env.REFRESH_SECRET;
 app.use(express.json());
 app.use(cookieParser());
 
+const allowCrossDomain = (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+};
+
+app.use(allowCrossDomain);
+
 // Helper to generate tokens
 function generateTokens(user) {
   const accessToken = jwt.sign({ email: user.email }, ACCESS_SECRET, { expiresIn: '15m' });
