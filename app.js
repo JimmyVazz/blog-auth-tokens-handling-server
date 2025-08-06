@@ -6,8 +6,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-
-const users = []; // In-memory
+const users = [];
 
 const PORT = process.env.PORT || 8000;
 const ACCESS_SECRET = process.env.ACCESS_SECRET;
@@ -17,10 +16,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
-  credentials: true,              // Allow sending cookies
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'],    // Allow these headers
+  origin: 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Helper to generate tokens
@@ -52,48 +51,51 @@ app.post('/api/auth/login', async (req, res) => {
 
   const { accessToken, refreshToken } = generateTokens(user);
 
-  // Send refresh token as HttpOnly cookie
+  // Send refresh token as a secure HttpOnly cookie
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
-    secure: false, // true in production with HTTPS
+    secure: false, // set to true in production with HTTPS
     sameSite: 'Lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 
-  res.json({ accessToken });
+  res.status(200).json({ message: 'Login successful', accessToken });
 });
 
+// Protected route
 app.get('/api/user', (req, res) => {
-  const token = req.cookies.accessToken; // Using the cookie
+  const token = req.cookies.refreshToken;
 
-  if (!token) return res.status(401).json({ message: 'No token' });
+  if (!token) {
+    return res.status(401).json({ message: 'No token' });
+  }
 
   try {
-    const decoded = jwt.verify(token, ACCESS_SECRET);
+    const decoded = jwt.verify(token, REFRESH_SECRET);
     res.json({ email: decoded.email });
   } catch (err) {
     res.status(403).json({ message: 'Invalid or expired token' });
   }
 });
 
-
-// Refresh token
-app.post('/refresh', (req, res) => {
+// Refresh endpoint
+app.post('/api/auth/refresh', (req, res) => {
   const token = req.cookies.refreshToken;
   if (!token) return res.status(401).json({ message: 'No refresh token' });
 
   try {
     const decoded = jwt.verify(token, REFRESH_SECRET);
     const user = users.find(u => u.email === decoded.email);
-    if (!user) return res.status(401).json({ message: 'User not found' });
+    if (!user) return res.status(403).json({ message: 'User not found' });
 
     const { accessToken, refreshToken } = generateTokens(user);
 
+    // Send new refresh token
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'Lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.json({ accessToken });
@@ -102,10 +104,10 @@ app.post('/refresh', (req, res) => {
   }
 });
 
-// Logout
-app.post('/logout', (req, res) => {
+// Logout endpoint
+app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('refreshToken');
-  res.json({ message: 'Logged out' });
+  res.json({ message: 'Logged out successfully' });
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
